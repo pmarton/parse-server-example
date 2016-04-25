@@ -25,7 +25,8 @@ function generateRestorationCodeForUser(userObject, resetObject, response) {
         // Execute any logic that should take place if the save fails.
         // error is a Parse.Error with an error code and message.
         response.error('Failed to create new resetObject, with error code: ' + error.message);
-      }
+      },
+        useMasterKey: true
     });
 }
 
