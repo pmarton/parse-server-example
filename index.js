@@ -19,7 +19,14 @@ var api = new ParseServer({
   serverURL: process.env.SERVER_URL || 'http://localhost:1337/parse',  // Don't forget to change to https if needed
   liveQuery: {
     classNames: ["Posts", "Comments"] // List of classes to support for query subscriptions
-  }
+  },
+  fileKey: '5a49a62c-5be0-445e-9364-d6c189391833',
+  filesAdapter: new S3Adapter(
+    "AKIAJF7PQTNGPDLUU2EQ",
+    "fKJZj/BuPgr/7q2uSsk4kX9077g+36J3NmgbwWpb",
+    "knitcharts",
+    { directAccess: true }
+  )
 });
 // Client-keys like the javascript key or the .NET key are not necessary with parse-server
 // If you wish you require them, you can set them as options in the initialization above:
