@@ -31,21 +31,15 @@ function generateRestorationCodeForUser(userObject, resetObject, response) {
 }
 
 function sendPasswordResetMail(email, username, restorationCode) {
-    console.log("Trying to send email to " + email + " with code:" + restorationCode);
-    Mailgun.sendEmail({
+    var data = {
       to: email,
       from: "KnitCharts <support@knitchartsapp.com>",
       subject: "Reset KnitCharts password",
       text: "Hello " + username + ",\n\n To reset your password please open this link on your device: knitcharts://restorePassword/" + restorationCode 
-    }, {
-      success: function(httpResponse) {
-        console.log(httpResponse);
-        console.log("Email sent to " + email);
-      },
-      error: function(httpResponse) {
-        console.error(httpResponse);
-        console.error("Uh oh, something went wrong");
-      }
+    };
+
+    Mailgun.messages().send(data, function (error, body) {
+        console.log(body);
     });
 }
 
