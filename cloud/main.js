@@ -1,5 +1,4 @@
-var Mailgun = require('mailgun');
-Mailgun.initialize('www.knitchartsapp.com', 'key-75b941cb44c2404919a721429f1af38c');
+var Mailgun = require('mailgun-js')({domain: 'www.knitchartsapp.com', apiKey: 'key-75b941cb44c2404919a721429f1af38c'});
 
 
 function generateRestorationCode() {
@@ -13,26 +12,26 @@ function generateRestorationCode() {
 }
 
 function generateRestorationCodeForUser(userObject, resetObject, response) {
-	resetObject.set("user", userObject);
-	resetObject.set("restorationCode", generateRestorationCode());
+    resetObject.set("user", userObject);
+    resetObject.set("restorationCode", generateRestorationCode());
 
-	resetObject.save(null, {
-	  success: function(reset) {
-	    // Execute any logic that should take place after the object is saved.
-		sendPasswordResetMail(userObject.get("email"), userObject.get("username"), resetObject.get("restorationCode"));
+    resetObject.save(null, {
+      success: function(reset) {
+        // Execute any logic that should take place after the object is saved.
+        sendPasswordResetMail(userObject.get("email"), userObject.get("username"), resetObject.get("restorationCode"));
         response.success();
-	  },
-	  error: function(reset, error) {
-	    // Execute any logic that should take place if the save fails.
-	    // error is a Parse.Error with an error code and message.
-	    response.error('Failed to create new resetObject, with error code: ' + error.message);
-	  }
-	});
+      },
+      error: function(reset, error) {
+        // Execute any logic that should take place if the save fails.
+        // error is a Parse.Error with an error code and message.
+        response.error('Failed to create new resetObject, with error code: ' + error.message);
+      }
+    });
 }
 
 function sendPasswordResetMail(email, username, restorationCode) {
     console.log("Trying to send email to " + email + " with code:" + restorationCode);
-	Mailgun.sendEmail({
+    Mailgun.sendEmail({
       to: email,
       from: "KnitCharts <support@knitchartsapp.com>",
       subject: "Reset KnitCharts password",
@@ -51,81 +50,85 @@ function sendPasswordResetMail(email, username, restorationCode) {
 
 
 Parse.Cloud.define("requestResetPassword", function(request, response) {
-	Parse.Cloud.useMasterKey();
     var userQuery = new Parse.Query(Parse.User);
     userQuery.equalTo('email', request.params.email);
     userQuery.first({
                 success: function(userObject) {
-                	if (userObject !== undefined) {
-                		// check if reset was already requested
-	                	var resetQuery = new Parse.Query("KCPasswordReset");
-					    resetQuery.equalTo('user', userObject);
-					    resetQuery.first({
-					                success: function(resetObject) {
-					                	if (resetObject !== undefined) {
-					                		generateRestorationCodeForUser(userObject, resetObject, response);
-					                	} else {
-					                		var KCPasswordReset = Parse.Object.extend("KCPasswordReset");
-											var passwordReset = new KCPasswordReset();
+                    if (userObject !== undefined) {
+                        // check if reset was already requested
+                        var resetQuery = new Parse.Query("KCPasswordReset");
+                        resetQuery.equalTo('user', userObject);
+                        resetQuery.first({
+                                    success: function(resetObject) {
+                                        if (resetObject !== undefined) {
+                                            generateRestorationCodeForUser(userObject, resetObject, response);
+                                        } else {
+                                            var KCPasswordReset = Parse.Object.extend("KCPasswordReset");
+                                            var passwordReset = new KCPasswordReset();
 
-					                		generateRestorationCodeForUser(userObject, passwordReset, response);
-					                	}
-					                },
-					                error: function(error) {
-					                    console.error("Error: " + error.code + " " + error.message);
-		    							response.error('Failed to search reset objects ' + error.message);
-					                }
-					            });
-                	} else {
-	    				response.error('A user with this email does not exist ' + error.message);
-	    			}
+                                            generateRestorationCodeForUser(userObject, passwordReset, response);
+                                        }
+                                    },
+                                    error: function(error) {
+                                        console.error("Error: " + error.code + " " + error.message);
+                                        response.error('Failed to search reset objects ' + error.message);
+                                    },
+                                    useMasterKey: true
+                                });
+                    } else {
+                        response.error('A user with this email does not exist ' + error.message);
+                    }
                 },
                 error: function(error) {
-	    			response.error('Failed to search user objects ' + error.message);
-                }
+                    response.error('Failed to search user objects ' + error.message);
+                },
+                useMasterKey: true
             });
 });
 
 Parse.Cloud.define("resetPassword", function(request, response) {
-	Parse.Cloud.useMasterKey();
     var resetQuery = new Parse.Query("KCPasswordReset");
     resetQuery.equalTo('restorationCode', request.params.restorationCode);
     resetQuery.first({
                 success: function(resetObject) {
-                	if (resetObject !== undefined) {
-                		var userObject = resetObject.get("user");
-                		userObject.set("password", request.params.password);
-                		userObject.save(null, {
-						  success: function(userObject) {
-						  	userObject.fetch({
-							  success: function(userObject) {
-							    resetObject.destroy({
-								  success: function(myObject) {
-								  	console.log("changed password for user " + userObject.get("username") + "lkasjlfdsjkfd" + userObject);
-	                				response.success(userObject.get("username"));
-								  },
-								  error: function(myObject, error) {
-		    						response.error('Could not delete resetObject ' + error.message);
-								  }
-								});
-							  },
-							  error: function(myObject, error) {
-		    						response.error('Could not refresh user ' + error.message);
-							  }
-							});
-						    
-						  },
-						  error: function(userObject, error) {
-	    					response.error('Could not save password for user ' + error.message);
-						  }
-						});
-                	} else {
-	    				response.error('The restorationCode does not exist');
-	    			}
+                    if (resetObject !== undefined) {
+                        var userObject = resetObject.get("user");
+                        userObject.set("password", request.params.password);
+                        userObject.save(null, {
+                          success: function(userObject) {
+                            userObject.fetch({
+                              success: function(userObject) {
+                                resetObject.destroy({
+                                  success: function(myObject) {
+                                    console.log("changed password for user " + userObject.get("username") + "lkasjlfdsjkfd" + userObject);
+                                    response.success(userObject.get("username"));
+                                  },
+                                  error: function(myObject, error) {
+                                    response.error('Could not delete resetObject ' + error.message);
+                                  },
+                                  useMasterKey: true
+                                });
+                              },
+                              error: function(myObject, error) {
+                                    response.error('Could not refresh user ' + error.message);
+                              },
+                              useMasterKey: true
+                            });
+                            
+                          },
+                          error: function(userObject, error) {
+                            response.error('Could not save password for user ' + error.message);
+                          },
+                          useMasterKey: true
+                        });
+                    } else {
+                        response.error('The restorationCode does not exist');
+                    }
                 },
                 error: function(error) {
-	    			response.error('Failed to search reset objects' + error.message);
-                }
+                    response.error('Failed to search reset objects' + error.message);
+                },
+                useMasterKey: true
             });
 });
 
@@ -280,7 +283,7 @@ Parse.Cloud.beforeSave("KCChart", function(request, response) {
         if (!request.object.get("title") || !request.object.get("uuid") || !request.object.get("author")) {
             response.error("missing attributes");
         } else {
-            if (!Parse.User.current().authenticated()) {
+            if (!request.user.authenticated()) {
                 response.error("Unauthorized access");
             } else {
                 request.object.set("addedTagsAfterEditing", request.object.get("tags"));
@@ -352,7 +355,7 @@ Parse.Cloud.afterSave("KCChart", function(request) {
 });
 
 Parse.Cloud.beforeDelete("KCChart", function(request, response) {
-    if (Parse.User.current().objectId !== request.object.get("author").objectId) {
+    if (request.user.objectId !== request.object.get("author").objectId) {
         response.error("Unauthorized access");
     } else {
         response.success();
