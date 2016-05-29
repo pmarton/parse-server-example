@@ -279,7 +279,7 @@ Parse.Cloud.beforeSave("KCChart", function(request, response) {
             response.error("missing attributes");
         } else {
             if (request.user.email === undefined || request.user.email === null) {
-                response.error("Unauthorized access");
+                response.error("Unauthorized access" + request.user);
             } else {
                 request.object.set("addedTagsAfterEditing", request.object.get("tags"));
                 response.success();
