@@ -278,7 +278,7 @@ Parse.Cloud.beforeSave("KCChart", function(request, response) {
         if (!request.object.get("title") || !request.object.get("uuid") || !request.object.get("author")) {
             response.error("missing attributes");
         } else {
-            if (!request.user.authenticated()) {
+            if (request.user.email === undefined || request.user.email === null) {
                 response.error("Unauthorized access");
             } else {
                 request.object.set("addedTagsAfterEditing", request.object.get("tags"));
